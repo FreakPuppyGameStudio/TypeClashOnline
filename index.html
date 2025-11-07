@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Type Clash - Online</title>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    body {
+      background: radial-gradient(circle at center, #101020, #050505);
+      color: #e0e0ff;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      animation: fadeIn 1s ease-out;
+    }
+
+    h1 {
+      font-size: 2.4em;
+      margin-top: 30px;
+      color: #8f6fff;
+      text-shadow: 0 0 15px #8f6fff;
+    }
+
+    .hidden { display: none; }
+
+    button {
+      background: linear-gradient(90deg, #5b2cff, #b044ff);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 8px;
+      border-radius: 10px;
+      transition: 0.2s;
+      box-shadow: 0 0 8px rgba(150, 50, 255, 0.4);
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(180, 90, 255, 0.7);
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      background: #1b1b1b;
+      color: #fff;
+      outline: none;
+      box-shadow: 0 0 8px rgba(255,255,255,0.1);
+    }
+
+    input:focus {
+      box-shadow: 0 0 12px rgba(120, 80, 255, 0.6);
+    }
+
+    #gameScreen {
+      animation: fadeIn 0.6s ease-in;
+    }
+
+    #wordDisplay {
+      font-size: 30px;
+      margin: 20px 0;
+      color: #00e0ff;
+      text-shadow: 0 0 10px #00e0ff;
+    }
+
+    #playerList div {
+      font-size: 18px;
+      margin: 4px;
+      color: #bdbdff;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚡ Type Clash - Online ⚡</h1>
+
+  <div id="mainMenu">
+    <p>Introduce tu nombre:</p>
+    <input id="playerNameInput" type="text" placeholder="Jugador legendario" />
+    <br /><br />
+    <button id="createGameBtn">🎮 Crear Partida</button>
+    <button id="joinGameBtn">🔗 Unirse a Partida</button>
+  </div>
+
+  <div id="joinMenu" class="hidden">
+    <p>Introduce el ID de la partida:</p>
+    <input id="joinGameIdInput" type="text" placeholder="Ej: ABC12" />
+    <br /><br />
+    <button id="confirmJoinBtn">Unirse</button>
+    <button onclick="showScreen('mainMenu')">Volver</button>
+  </div>
+
+  <div id="gameScreen" class="hidden">
+    <h2>Partida: <span id="gameIdDisplay"></span></h2>
+    <p>Escribe rápido la palabra:</p>
+    <div id="wordDisplay">---</div>
+    <input id="inputField" type="text" placeholder="¡Dale duro a las teclas!" autocomplete="off" />
+    <div id="playerList"></div>
+    <p id="status"></p>
+    <button onclick="leaveGame()">🚪 Salir</button>
+  </div>
+
+  <footer>Hecho con ❤️ por DXG</footer>
+
+  <!-- Firebase y lógica -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      updateDoc,
+      onSnapshot,
+      deleteField,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+    // 🔥 Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCBtxDoEyuP-H7Dzd7Z-l8ExuLXLBWJNfI",
+      authDomain: "typpinigwar.firebaseapp.com",
+      projectId: "typpinigwar",
+      storageBucket: "typpinigwar.firebasestorage.app",
+      messagingSenderId: "609691050073",
+      appId: "1:609691050073:web:fae852b140f5312905d148",
+      measurementId: "G-8L8KJR47S0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser = { uid: null, name: null };
+    let currentGameId = null;
+    let unsubscribeGame = null;
+
+    const words = [
+      // 🇲🇽 México
+      "chido", "órale", "cuate", "tamal", "taco", "chingón", "aguacate", "güey", "pozole",
+      // 🇦🇷 Argentina
+      "che", "boludo", "quilombo", "mate", "bondi", "laburar", "mina", "asado",
+      // 🇪🇸 España
+      "tío", "flipante", "vale", "guay", "molar", "curro", "colega", "caña",
+      // 🇨🇴 Colombia
+      "parce", "bacano", "rumba", "guaro", "chimba", "arepa", "jartera",
+      // 🇻🇪 Venezuela
+      "pana", "chamo", "cachapa", "arepita", "burda", "arrechísimo",
+      // 🇨🇺 Cuba
+      "asere", "qué bolá", "guagua", "mango", "yuma", "pinareño",
+      // 🇩🇴 República Dominicana
+      "tiguere", "concho", "chevere", "plátano power", "vacano",
+      // 🇺🇾 Uruguay
+      "bo", "gurí", "matecito", "ta", "tranca", "boina",
+      // 🇪🇨 Ecuador
+      "ñañito", "guagua", "chulla", "bacán", "ñapa",
+      // 🇵🇪 Perú
+      "causa", "pata", "chévere", "chamba", "lomito", "anticucho",
+      // Generales / divertidas
+      "memes", "internet", "código", "lag", "LOL", "XD", "bug", "ping", "modoDios", "sus", "guapetón", "locochón"
+    ];
+
+    function showScreen(id) {
+      document.getElementById("mainMenu").classList.add("hidden");
+      document.getElementById("joinMenu").classList.add("hidden");
+      document.getElementById("gameScreen").classList.add("hidden");
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function addEventListeners() {
+      document.getElementById("createGameBtn").addEventListener("click", createGame);
+      document.getElementById("joinGameBtn").addEventListener("click", () => showScreen("joinMenu"));
+      document.getElementById("confirmJoinBtn").addEventListener("click", joinGame);
+      document.getElementById("inputField").addEventListener("input", handleTyping);
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser.uid = user.uid;
+        showScreen("mainMenu");
+        addEventListeners();
+      } else {
+        await signInAnonymously(auth);
+      }
+    });
+
+    async function createGame() {
+      const name = document.getElementById("playerNameInput").value || "Jugador";
+      const gameId = Math.random().toString(36).substring(2, 7).toUpperCase();
+      currentGameId = gameId;
+      currentUser.name = name;
+
+      const gameRef = doc(db, "games", gameId);
+      await setDoc(gameRef, {
+        players: { [currentUser.uid]: { name, score: 0 } },
+        word: words[Math.floor(Math.random() * words.length)],
+        createdAt: serverTimestamp()
+      });
+
+      subscribeToGame(gameId);
+      showScreen("gameScreen");
+      document.getElementById("gameIdDisplay").textContent = gameId;
+    }
+
+    async function joinGame() {
+      const gameId = document.getElementById("joinGameIdInput").value.trim();
+      const name = document.getElementById("playerNameInput").value || "Jugador";
+
+      const gameRef = doc(db, "games", gameId);
+      const gameSnap = await getDoc(gameRef);
+      if (!gameSnap.exists()) {
+        alert("❌ La partida no existe");
+        return;
+      }
+
+      currentGameId = gameId;
+      currentUser.name = name;
+
+      await updateDoc(gameRef, {
+        [`players.${currentUser.uid}`]: { name, score: 0 }
+      });
+
+      subscribeToGame(gameId);
+      showScreen("gameScreen");
+      document.getElementById("gameIdDisplay").textContent = gameId;
+    }
+
+    function subscribeToGame(gameId) {
+      const gameRef = doc(db, "games", gameId);
+      if (unsubscribeGame) unsubscribeGame();
+
+      unsubscribeGame = onSnapshot(gameRef, (snapshot) => {
+        if (!snapshot.exists()) {
+          alert("Partida finalizada");
+          showScreen("mainMenu");
+          return;
+        }
+        const data = snapshot.data();
+        updateGameUI(data);
+      });
+    }
+
+    function updateGameUI(data) {
+      document.getElementById("wordDisplay").textContent = data.word;
+      const playerList = document.getElementById("playerList");
+      playerList.innerHTML = "";
+      for (const uid in data.players) {
+        const p = data.players[uid];
+        const div = document.createElement("div");
+        div.textContent = `${p.name}: ${p.score}`;
+        playerList.appendChild(div);
+      }
+    }
+
+    async function handleTyping() {
+      const input = document.getElementById("inputField");
+      const gameRef = doc(db, "games", currentGameId);
+      const snap = await getDoc(gameRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      if (input.value.trim().toLowerCase() === data.word.toLowerCase()) {
+        input.value = "";
+        const newWord = words[Math.floor(Math.random() * words.length)];
+        await updateDoc(gameRef, {
+          word: newWord,
+          [`players.${currentUser.uid}.score`]: data.players[currentUser.uid].score + 1
+        });
+      }
+    }
+
+    async function leaveGame() {
+      if (!currentGameId) return;
+      const gameRef = doc(db, "games", currentGameId);
+      await updateDoc(gameRef, {
+        [`players.${currentUser.uid}`]: deleteField()
+      });
+      unsubscribeGame?.();
+      showScreen("mainMenu");
+    }
+  </script>
+</body>
+</html>
