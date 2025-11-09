@@ -21,14 +21,7 @@
       animation: fadeIn 1s ease-out;
     }
 
-    h1 {
-      font-size: 2.4em;
-      margin-top: 30px;
-      color: #8f6fff;
-      text-shadow: 0 0 15px #8f6fff;
-      animation: fadeIn 1s ease-in;
-    }
-
+    h1 { font-size: 2.4em; margin-top: 30px; color: #8f6fff; text-shadow: 0 0 15px #8f6fff; animation: fadeIn 1s ease-in; }
     .hidden { display: none; }
 
     button {
@@ -43,11 +36,7 @@
       transition: all 0.25s ease;
       box-shadow: 0 0 8px rgba(150, 50, 255, 0.4);
     }
-
-    button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(180, 90, 255, 0.7);
-    }
+    button:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(180, 90, 255, 0.7); }
 
     input, select {
       padding: 10px;
@@ -60,42 +49,21 @@
       box-shadow: 0 0 8px rgba(255,255,255,0.1);
       transition: box-shadow 0.3s ease;
     }
+    input:focus, select:focus { box-shadow: 0 0 12px rgba(120, 80, 255, 0.6); }
 
-    input:focus, select:focus {
-      box-shadow: 0 0 12px rgba(120, 80, 255, 0.6);
+    #gameScreen { animation: fadeIn 0.6s ease-in; }
+    #wordDisplay { font-size: 30px; margin: 20px 0; color: #00e0ff; text-shadow: 0 0 10px #00e0ff; }
+    #playerList div { font-size: 18px; margin: 4px; color: #bdbdff; }
+    #status { margin-top: 10px; font-size: 14px; color: #aaa; }
+
+    #winnerScreen { 
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); color: #fff; display: flex;
+      justify-content: center; align-items: center; font-size: 24px;
+      flex-direction: column; z-index: 999; display: none;
     }
 
-    #gameScreen {
-      animation: fadeIn 0.6s ease-in;
-    }
-
-    #wordDisplay {
-      font-size: 30px;
-      margin: 20px 0;
-      color: #00e0ff;
-      text-shadow: 0 0 10px #00e0ff;
-    }
-
-    #playerList div {
-      font-size: 18px;
-      margin: 4px;
-      color: #bdbdff;
-    }
-
-    #status {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #aaa;
-    }
-
-    footer {
-      position: absolute;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      font-size: 13px;
-      color: #666;
-    }
+    footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 13px; color: #666; }
   </style>
 </head>
 <body>
@@ -117,7 +85,6 @@
     <button onclick="showScreen('mainMenu')">Volver</button>
   </div>
 
-  <!-- Nuevo menú de configuración -->
   <div id="configMenu" class="hidden">
     <h2>⚙️ Configurar Partida</h2>
     <p>Selecciona el modo de victoria:</p>
@@ -129,6 +96,7 @@
     <p id="configLabel">Cantidad de puntos o segundos:</p>
     <input id="configValue" type="number" min="1" value="10" />
     <br /><br />
+    <p>ID de la partida: <span id="newGameCode">---</span></p>
     <button id="startGameBtn">🚀 Iniciar Partida</button>
     <button onclick="showScreen('mainMenu')">Volver</button>
   </div>
@@ -143,9 +111,13 @@
     <button onclick="leaveGame()">🚪 Salir</button>
   </div>
 
+  <div id="winnerScreen">
+    <p id="winnerText"></p>
+    <button onclick="returnToMenu()">🏁 Volver al menú</button>
+  </div>
+
   <footer> By: SorinaCrew :) </footer>
 
-  <!-- Firebase y lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
@@ -173,24 +145,16 @@
     let gameTimer = null;
 
     const words = [
-      // 🌎 Modismos latinos
-      "chido", "órale", "cuate", "che", "parce", "bacano", "pana", "asere", "chévere", "causa", "bo", "ñañito", "vale", "tío", "vacano",
-      
-      // 🎮 Videojuegos
-      "Minecraft", "Fortnite", "GTA", "AmongUs", "Overwatch", "Valorant", "Pokémon", "Mario", "Luigi", "Link", "Zelda", "Sonic", "Crash", "noob", "AFK", "tryhard", "GG", "lagazo", "buff", "nerf", "grindear",
-      
-      // 🎬 Películas y series
-      "Grogu", "Wakanda", "Thanos", "Mandaloriano", "Frodo", "Gollum", "Hogwarts", "AvadaKedavra", "Neo", "Matrix", "JohnWick", "Toretto", "Familia", "Heisenberg", "SayMyName", "BreakingBad", "Jedi", "Sith", "Shrek", "Donkey", "PeakyBlinders", "Vecna", "UpsideDown",
-      
-      // 🕹️ Cultura pop e internet
-      "Sigma", "Ohio", "Rizz", "Cheems", "Doge", "UwU", "XD", "rickroll", "based", "meta", "sus", "toxic", "cringe", "meme", "NPC", "Skibidi", "fanboy", "waifu", "senpai", "otaku",
-      
-      // 🤓 Frases y diversión
-      "modoDios", "ping", "internet", "código", "bug", "respawn", "glitchear", "XP", "rankear", "crack", "fiera", "máquina", "tremendo", "épico"
+      "chido","órale","cuate","che","parce","bacano","pana","asere","chévere","causa","bo","ñañito",
+      "vale","tío","vacano","Minecraft","Fortnite","GTA","AmongUs","Overwatch","Valorant","Pokémon","Mario","Luigi","Link","Zelda","Sonic","Crash",
+      "noob","AFK","tryhard","GG","lagazo","buff","nerf","grindear",
+      "Grogu","Wakanda","Thanos","Mandaloriano","Frodo","Gollum","Hogwarts","AvadaKedavra","Neo","Matrix","JohnWick","Toretto","Familia","Heisenberg","SayMyName","BreakingBad","Jedi","Sith","Shrek","Donkey","PeakyBlinders","Vecna","UpsideDown",
+      "Sigma","Ohio","Rizz","Cheems","Doge","UwU","XD","rickroll","based","meta","sus","toxic","cringe","meme","NPC","Skibidi","fanboy","waifu","senpai","otaku",
+      "modoDios","ping","internet","código","bug","respawn","glitchear","XP","rankear","crack","fiera","máquina","tremendo","épico"
     ];
 
-    function showScreen(id) {
-      ["mainMenu", "joinMenu", "configMenu", "gameScreen"].forEach(x => document.getElementById(x)?.classList.add("hidden"));
+    function showScreen(id){
+      ["mainMenu","joinMenu","configMenu","gameScreen","winnerScreen"].forEach(x => document.getElementById(x)?.classList.add("hidden"));
       document.getElementById(id)?.classList.remove("hidden");
     }
 
@@ -201,20 +165,13 @@
       document.getElementById("startGameBtn").addEventListener("click", createGame);
       document.getElementById("inputField").addEventListener("input", handleTyping);
       document.getElementById("winMode").addEventListener("change", e => {
-        document.getElementById("configLabel").textContent = e.target.value === "time"
-          ? "Duración (segundos):"
-          : "Puntos para ganar:";
+        document.getElementById("configLabel").textContent = e.target.value === "time" ? "Duración (segundos):" : "Puntos para ganar:";
       });
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUser.uid = user.uid;
-        showScreen("mainMenu");
-        addEventListeners();
-      } else {
-        await signInAnonymously(auth);
-      }
+    onAuthStateChanged(auth, async user => {
+      if(user){ currentUser.uid = user.uid; showScreen("mainMenu"); addEventListeners(); } 
+      else { await signInAnonymously(auth); }
     });
 
     async function createGame() {
@@ -225,9 +182,11 @@
       currentGameId = gameId;
       currentUser.name = name;
 
-      const gameRef = doc(db, "games", gameId);
-      await setDoc(gameRef, {
-        players: { [currentUser.uid]: { name, score: 0 } },
+      document.getElementById("newGameCode").textContent = gameId;
+
+      const gameRef = doc(db,"games",gameId);
+      await setDoc(gameRef,{
+        players:{[currentUser.uid]:{name,score:0}},
         word: randomWord(),
         createdAt: serverTimestamp(),
         mode: winMode,
@@ -238,110 +197,104 @@
       subscribeToGame(gameId);
       showScreen("gameScreen");
       document.getElementById("gameIdDisplay").textContent = gameId;
-
-      if (winMode === "time") startTimer(winValue);
+      if(winMode==="time") startTimer(winValue);
     }
 
-    async function joinGame() {
+    async function joinGame(){
       const gameId = document.getElementById("joinGameIdInput").value.trim();
       const name = document.getElementById("playerNameInput").value || "Jugador";
-      const gameRef = doc(db, "games", gameId);
+      const gameRef = doc(db,"games",gameId);
       const snap = await getDoc(gameRef);
-      if (!snap.exists()) return alert("❌ La partida no existe");
+      if(!snap.exists()) return alert("❌ La partida no existe");
 
       const data = snap.data();
       currentGameId = gameId;
       currentUser.name = name;
-      await updateDoc(gameRef, { [`players.${currentUser.uid}`]: { name, score: 0 } });
+      await updateDoc(gameRef,{[`players.${currentUser.uid}`]:{name,score:0}});
       subscribeToGame(gameId);
       showScreen("gameScreen");
       document.getElementById("gameIdDisplay").textContent = gameId;
 
-      if (data.mode === "time") startTimer(data.goal - Math.floor((Date.now() - data.startTime) / 1000));
+      if(data.mode==="time") startTimer(data.goal - Math.floor((Date.now()-data.startTime)/1000));
     }
 
-    function randomWord() {
-      return words[Math.floor(Math.random() * words.length)];
-    }
+    function randomWord(){ return words[Math.floor(Math.random()*words.length)]; }
 
-    function startTimer(seconds) {
+    function startTimer(seconds){
       clearInterval(gameTimer);
       let remaining = seconds;
       const status = document.getElementById("status");
-      gameTimer = setInterval(() => {
+      gameTimer = setInterval(()=>{
         status.textContent = `⏰ Tiempo restante: ${remaining}s`;
-        if (remaining <= 0) {
-          clearInterval(gameTimer);
-          status.textContent = "🏁 ¡Se acabó el tiempo!";
-          leaveGame();
-        }
+        if(remaining<=0){ clearInterval(gameTimer); status.textContent="🏁 ¡Se acabó el tiempo!"; leaveGame(); }
         remaining--;
-      }, 1000);
+      },1000);
     }
 
-    function subscribeToGame(gameId) {
-      const ref = doc(db, "games", gameId);
-      if (unsubscribeGame) unsubscribeGame();
-      unsubscribeGame = onSnapshot(ref, (snap) => {
-        if (!snap.exists()) {
-          alert("Partida finalizada");
-          showScreen("mainMenu");
-          return;
-        }
+    function subscribeToGame(gameId){
+      const ref = doc(db,"games",gameId);
+      if(unsubscribeGame) unsubscribeGame();
+      unsubscribeGame = onSnapshot(ref,snap=>{
+        if(!snap.exists()){ alert("Partida finalizada"); showScreen("mainMenu"); return; }
         const data = snap.data();
         updateGameUI(data);
         checkWin(data);
       });
     }
 
-    function updateGameUI(data) {
+    function updateGameUI(data){
       document.getElementById("wordDisplay").textContent = data.word;
       const list = document.getElementById("playerList");
-      list.innerHTML = "";
-      for (const uid in data.players) {
+      list.innerHTML="";
+      for(const uid in data.players){
         const p = data.players[uid];
-        const div = document.createElement("div");
-        div.textContent = `${p.name}: ${p.score}`;
+        const div=document.createElement("div");
+        div.textContent=`${p.name}: ${p.score}`;
         list.appendChild(div);
       }
     }
 
-    async function handleTyping() {
+    async function handleTyping(){
       const input = document.getElementById("inputField");
-      const ref = doc(db, "games", currentGameId);
+      const ref = doc(db,"games",currentGameId);
       const snap = await getDoc(ref);
-      if (!snap.exists()) return;
+      if(!snap.exists()) return;
       const data = snap.data();
-
-      if (input.value.trim().toLowerCase() === data.word.toLowerCase()) {
-        input.value = "";
-        const newWord = randomWord();
-        await updateDoc(ref, {
-          word: newWord,
-          [`players.${currentUser.uid}.score`]: data.players[currentUser.uid].score + 1
+      if(input.value.trim().toLowerCase()===data.word.toLowerCase()){
+        input.value="";
+        const newWord=randomWord();
+        await updateDoc(ref,{
+          word:newWord,
+          [`players.${currentUser.uid}.score`]: data.players[currentUser.uid].score+1
         });
       }
     }
 
-    function checkWin(data) {
-      if (data.mode === "points") {
-        for (const uid in data.players) {
-          if (data.players[uid].score >= data.goal) {
-            alert(`🎉 ${data.players[uid].name} ganó la partida con ${data.goal} puntos!`);
-            leaveGame();
+    function checkWin(data){
+      if(data.mode==="points"){
+        for(const uid in data.players){
+          if(data.players[uid].score>=data.goal){
+            // Mostrar pantalla de ganador para todos
+            document.getElementById("winnerText").textContent = `🎉 ${data.players[uid].name} ganó la partida con ${data.goal} puntos!`;
+            showScreen("winnerScreen");
+            clearInterval(gameTimer);
           }
         }
       }
     }
 
-    async function leaveGame() {
-      if (!currentGameId) return;
+    async function leaveGame(){
+      if(!currentGameId) return;
       clearInterval(gameTimer);
-      const ref = doc(db, "games", currentGameId);
-      await updateDoc(ref, { [`players.${currentUser.uid}`]: deleteField() });
+      const ref = doc(db,"games",currentGameId);
+      await updateDoc(ref,{[`players.${currentUser.uid}`]:deleteField()});
       unsubscribeGame?.();
       showScreen("mainMenu");
-      currentGameId = null;
+      currentGameId=null;
+    }
+
+    function returnToMenu(){
+      leaveGame();
     }
   </script>
 </body>
