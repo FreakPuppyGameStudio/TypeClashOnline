@@ -6,7 +6,7 @@
   <title>Type Clash - Online</title>
   <style>
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -26,6 +26,7 @@
       margin-top: 30px;
       color: #8f6fff;
       text-shadow: 0 0 15px #8f6fff;
+      animation: fadeIn 1s ease-in;
     }
 
     .hidden { display: none; }
@@ -39,7 +40,7 @@
       cursor: pointer;
       margin: 8px;
       border-radius: 10px;
-      transition: 0.2s;
+      transition: all 0.25s ease;
       box-shadow: 0 0 8px rgba(150, 50, 255, 0.4);
     }
 
@@ -48,7 +49,7 @@
       box-shadow: 0 0 15px rgba(180, 90, 255, 0.7);
     }
 
-    input {
+    input, select {
       padding: 10px;
       border-radius: 8px;
       border: none;
@@ -57,9 +58,10 @@
       color: #fff;
       outline: none;
       box-shadow: 0 0 8px rgba(255,255,255,0.1);
+      transition: box-shadow 0.3s ease;
     }
 
-    input:focus {
+    input:focus, select:focus {
       box-shadow: 0 0 12px rgba(120, 80, 255, 0.6);
     }
 
@@ -115,6 +117,22 @@
     <button onclick="showScreen('mainMenu')">Volver</button>
   </div>
 
+  <!-- Nuevo menú de configuración -->
+  <div id="configMenu" class="hidden">
+    <h2>⚙️ Configurar Partida</h2>
+    <p>Selecciona el modo de victoria:</p>
+    <select id="winMode">
+      <option value="points">Por Puntos</option>
+      <option value="time">Por Tiempo</option>
+    </select>
+    <br /><br />
+    <p id="configLabel">Cantidad de puntos o segundos:</p>
+    <input id="configValue" type="number" min="1" value="10" />
+    <br /><br />
+    <button id="startGameBtn">🚀 Iniciar Partida</button>
+    <button onclick="showScreen('mainMenu')">Volver</button>
+  </div>
+
   <div id="gameScreen" class="hidden">
     <h2>Partida: <span id="gameIdDisplay"></span></h2>
     <p>Escribe rápido la palabra:</p>
@@ -130,23 +148,9 @@
   <!-- Firebase y lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import {
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      getDoc,
-      updateDoc,
-      onSnapshot,
-      deleteField,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
-    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCBtxDoEyuP-H7Dzd7Z-l8ExuLXLBWJNfI",
       authDomain: "typpinigwar.firebaseapp.com",
@@ -164,44 +168,43 @@
     let currentUser = { uid: null, name: null };
     let currentGameId = null;
     let unsubscribeGame = null;
+    let winMode = "points";
+    let winValue = 10;
+    let gameTimer = null;
 
     const words = [
-      // 🇲🇽 México
-      "chido", "órale", "cuate", "tamal", "taco", "chingón", "aguacate", "güey", "pozole",
-      // 🇦🇷 Argentina
-      "che", "boludo", "quilombo", "mate", "bondi", "laburar", "mina", "asado",
-      // 🇪🇸 España
-      "tío", "flipante", "vale", "guay", "molar", "curro", "colega", "caña",
-      // 🇨🇴 Colombia
-      "parce", "bacano", "rumba", "guaro", "chimba", "arepa", "jartera",
-      // 🇻🇪 Venezuela
-      "pana", "chamo", "cachapa", "arepita", "burda", "arrechísimo",
-      // 🇨🇺 Cuba
-      "asere", "qué bolá", "guagua", "mango", "yuma", "pinareño",
-      // 🇩🇴 República Dominicana
-      "tiguere", "concho", "chevere", "plátano power", "vacano",
-      // 🇺🇾 Uruguay
-      "bo", "gurí", "matecito", "ta", "tranca", "boina",
-      // 🇪🇨 Ecuador
-      "ñañito", "guagua", "chulla", "bacán", "ñapa",
-      // 🇵🇪 Perú
-      "causa", "pata", "chévere", "chamba", "lomito", "anticucho",
-      // Generales / divertidas
-      "memes", "internet", "código", "lag", "LOL", "XD", "bug", "ping", "modoDios", "sus", "guapetón", "locochón"
+      // 🌎 Modismos latinos
+      "chido", "órale", "cuate", "che", "parce", "bacano", "pana", "asere", "chévere", "causa", "bo", "ñañito", "vale", "tío", "vacano",
+      
+      // 🎮 Videojuegos
+      "Minecraft", "Fortnite", "GTA", "AmongUs", "Overwatch", "Valorant", "Pokémon", "Mario", "Luigi", "Link", "Zelda", "Sonic", "Crash", "noob", "AFK", "tryhard", "GG", "lagazo", "buff", "nerf", "grindear",
+      
+      // 🎬 Películas y series
+      "Grogu", "Wakanda", "Thanos", "Mandaloriano", "Frodo", "Gollum", "Hogwarts", "AvadaKedavra", "Neo", "Matrix", "JohnWick", "Toretto", "Familia", "Heisenberg", "SayMyName", "BreakingBad", "Jedi", "Sith", "Shrek", "Donkey", "PeakyBlinders", "Vecna", "UpsideDown",
+      
+      // 🕹️ Cultura pop e internet
+      "Sigma", "Ohio", "Rizz", "Cheems", "Doge", "UwU", "XD", "rickroll", "based", "meta", "sus", "toxic", "cringe", "meme", "NPC", "Skibidi", "fanboy", "waifu", "senpai", "otaku",
+      
+      // 🤓 Frases y diversión
+      "modoDios", "ping", "internet", "código", "bug", "respawn", "glitchear", "XP", "rankear", "crack", "fiera", "máquina", "tremendo", "épico"
     ];
 
     function showScreen(id) {
-      document.getElementById("mainMenu").classList.add("hidden");
-      document.getElementById("joinMenu").classList.add("hidden");
-      document.getElementById("gameScreen").classList.add("hidden");
-      document.getElementById(id).classList.remove("hidden");
+      ["mainMenu", "joinMenu", "configMenu", "gameScreen"].forEach(x => document.getElementById(x)?.classList.add("hidden"));
+      document.getElementById(id)?.classList.remove("hidden");
     }
 
     function addEventListeners() {
-      document.getElementById("createGameBtn").addEventListener("click", createGame);
+      document.getElementById("createGameBtn").addEventListener("click", () => showScreen("configMenu"));
       document.getElementById("joinGameBtn").addEventListener("click", () => showScreen("joinMenu"));
       document.getElementById("confirmJoinBtn").addEventListener("click", joinGame);
+      document.getElementById("startGameBtn").addEventListener("click", createGame);
       document.getElementById("inputField").addEventListener("input", handleTyping);
+      document.getElementById("winMode").addEventListener("change", e => {
+        document.getElementById("configLabel").textContent = e.target.value === "time"
+          ? "Duración (segundos):"
+          : "Puntos para ganar:";
+      });
     }
 
     onAuthStateChanged(auth, async (user) => {
@@ -215,6 +218,8 @@
     });
 
     async function createGame() {
+      winMode = document.getElementById("winMode").value;
+      winValue = parseInt(document.getElementById("configValue").value);
       const name = document.getElementById("playerNameInput").value || "Jugador";
       const gameId = Math.random().toString(36).substring(2, 7).toUpperCase();
       currentGameId = gameId;
@@ -223,90 +228,120 @@
       const gameRef = doc(db, "games", gameId);
       await setDoc(gameRef, {
         players: { [currentUser.uid]: { name, score: 0 } },
-        word: words[Math.floor(Math.random() * words.length)],
-        createdAt: serverTimestamp()
+        word: randomWord(),
+        createdAt: serverTimestamp(),
+        mode: winMode,
+        goal: winValue,
+        startTime: Date.now()
       });
 
       subscribeToGame(gameId);
       showScreen("gameScreen");
       document.getElementById("gameIdDisplay").textContent = gameId;
+
+      if (winMode === "time") startTimer(winValue);
     }
 
     async function joinGame() {
       const gameId = document.getElementById("joinGameIdInput").value.trim();
       const name = document.getElementById("playerNameInput").value || "Jugador";
-
       const gameRef = doc(db, "games", gameId);
-      const gameSnap = await getDoc(gameRef);
-      if (!gameSnap.exists()) {
-        alert("❌ La partida no existe");
-        return;
-      }
+      const snap = await getDoc(gameRef);
+      if (!snap.exists()) return alert("❌ La partida no existe");
 
+      const data = snap.data();
       currentGameId = gameId;
       currentUser.name = name;
-
-      await updateDoc(gameRef, {
-        [`players.${currentUser.uid}`]: { name, score: 0 }
-      });
-
+      await updateDoc(gameRef, { [`players.${currentUser.uid}`]: { name, score: 0 } });
       subscribeToGame(gameId);
       showScreen("gameScreen");
       document.getElementById("gameIdDisplay").textContent = gameId;
+
+      if (data.mode === "time") startTimer(data.goal - Math.floor((Date.now() - data.startTime) / 1000));
+    }
+
+    function randomWord() {
+      return words[Math.floor(Math.random() * words.length)];
+    }
+
+    function startTimer(seconds) {
+      clearInterval(gameTimer);
+      let remaining = seconds;
+      const status = document.getElementById("status");
+      gameTimer = setInterval(() => {
+        status.textContent = `⏰ Tiempo restante: ${remaining}s`;
+        if (remaining <= 0) {
+          clearInterval(gameTimer);
+          status.textContent = "🏁 ¡Se acabó el tiempo!";
+          leaveGame();
+        }
+        remaining--;
+      }, 1000);
     }
 
     function subscribeToGame(gameId) {
-      const gameRef = doc(db, "games", gameId);
+      const ref = doc(db, "games", gameId);
       if (unsubscribeGame) unsubscribeGame();
-
-      unsubscribeGame = onSnapshot(gameRef, (snapshot) => {
-        if (!snapshot.exists()) {
+      unsubscribeGame = onSnapshot(ref, (snap) => {
+        if (!snap.exists()) {
           alert("Partida finalizada");
           showScreen("mainMenu");
           return;
         }
-        const data = snapshot.data();
+        const data = snap.data();
         updateGameUI(data);
+        checkWin(data);
       });
     }
 
     function updateGameUI(data) {
       document.getElementById("wordDisplay").textContent = data.word;
-      const playerList = document.getElementById("playerList");
-      playerList.innerHTML = "";
+      const list = document.getElementById("playerList");
+      list.innerHTML = "";
       for (const uid in data.players) {
         const p = data.players[uid];
         const div = document.createElement("div");
         div.textContent = `${p.name}: ${p.score}`;
-        playerList.appendChild(div);
+        list.appendChild(div);
       }
     }
 
     async function handleTyping() {
       const input = document.getElementById("inputField");
-      const gameRef = doc(db, "games", currentGameId);
-      const snap = await getDoc(gameRef);
+      const ref = doc(db, "games", currentGameId);
+      const snap = await getDoc(ref);
       if (!snap.exists()) return;
-
       const data = snap.data();
+
       if (input.value.trim().toLowerCase() === data.word.toLowerCase()) {
         input.value = "";
-        const newWord = words[Math.floor(Math.random() * words.length)];
-        await updateDoc(gameRef, {
+        const newWord = randomWord();
+        await updateDoc(ref, {
           word: newWord,
           [`players.${currentUser.uid}.score`]: data.players[currentUser.uid].score + 1
         });
       }
     }
 
+    function checkWin(data) {
+      if (data.mode === "points") {
+        for (const uid in data.players) {
+          if (data.players[uid].score >= data.goal) {
+            alert(`🎉 ${data.players[uid].name} ganó la partida con ${data.goal} puntos!`);
+            leaveGame();
+          }
+        }
+      }
+    }
+
     async function leaveGame() {
       if (!currentGameId) return;
-      const gameRef = doc(db, "games", currentGameId);
-      await updateDoc(gameRef, {
-        [`players.${currentUser.uid}`]: deleteField()
-      });
+      clearInterval(gameTimer);
+      const ref = doc(db, "games", currentGameId);
+      await updateDoc(ref, { [`players.${currentUser.uid}`]: deleteField() });
       unsubscribeGame?.();
       showScreen("mainMenu");
+      currentGameId = null;
     }
   </script>
 </body>
